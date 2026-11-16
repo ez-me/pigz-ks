@@ -4,8 +4,10 @@ A fork of [pigz 2.8](https://github.com/madler/pigz) (commit `fe4894f`) that
 adds the ksflate engine as compression level 10. Levels 0–9 still use zlib
 and level 11 still uses zopfli; only level 10 is new.
 
-The engine is linked directly from `../ksflate/src`, so this directory must
-sit next to `ksflate/`. It is compiled as C++20; the pigz driver stays C.
+The engine sources are vendored under `engine/`, so this fork builds standalone
+with no sibling checkout. They are a copy of `ksflate/src` and are compiled as
+C++20; the pigz driver stays C. `make sync-engine` refreshes the copy from
+`../ksflate/src` when working inside the ksflate development tree.
 
 ```sh
 make pigz       # builds ./pigz and ./unpigz
@@ -61,7 +63,8 @@ and runs `tests/engine_wrapper.cpp`, which concatenates a non-final and a final
 `ksflate_compress()` segment and inflates the result with zlib.
 
 The engine-level history test lives in `../ksflate/tests/history.cpp` and is
-run by `make test` in `../ksflate`.
+run by `make test` in `../ksflate`. It is not part of this repository, which
+only needs the vendored sources under `engine/`.
 
 ## License
 

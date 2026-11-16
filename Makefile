@@ -1,7 +1,7 @@
 CC=gcc
 CXX=g++
 CFLAGS=-O3 -Wall -Wextra -Wno-unknown-pragmas -Wcast-qual
-CXXFLAGS=-std=c++20 -O2 -Wall -Wextra -Wpedantic -I../ksflate/src
+CXXFLAGS=-std=c++20 -O2 -Wall -Wextra -Wpedantic -Iengine
 LDFLAGS=
 # CFLAGS=-O3 -Wall -Wextra -Wno-unknown-pragmas -Wcast-qual -g -fsanitize=thread
 # LDFLAGS=-g -fsanitize=thread
@@ -11,8 +11,9 @@ LIBS=-lm -lpthread -lz
 ZOPFLI=zopfli/src/zopfli/
 ZOP=deflate.o blocksplitter.o tree.o lz77.o cache.o hash.o util.o squeeze.o katajainen.o symbols.o
 
-# The ksflate engine is linked directly into this fork for level 10.
-ENGINE_DIR=../ksflate/src
+# The ksflate engine is vendored under engine/ so this fork builds standalone.
+# `make sync-engine` refreshes it from ../ksflate/src in the development tree.
+ENGINE_DIR=engine
 ENGINE_OBJS=strategy0_encoder.o strategy12_parser.o strategy0_model.o \
 	parser_cost.o huffman.o deflate_writer.o block_splitter.o \
 	split_score_model.o
@@ -32,6 +33,13 @@ ksflate_engine.o: ksflate_engine.cpp ksflate_engine.h \
 
 $(ENGINE_OBJS): %.o: $(ENGINE_DIR)/%.cpp
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
+
+# Development convenience: refresh the vendored engine from the ksflate tree.
+# Not needed to build; the copy under engine/ is what ships with this fork.
+sync-engine:
+	@test -d ../ksflate/src || \
+		{ echo "sync-engine: ../ksflate/src not found"; exit 1; }
+	cp ../ksflate/src/*.cpp ../ksflate/src/*.hpp engine/
 
 tests/engine_wrapper: tests/engine_wrapper.cpp $(KSFLATE_OBJS) ksflate_engine.h
 	$(CXX) $(CXXFLAGS) -I. -o $@ tests/engine_wrapper.cpp $(KSFLATE_OBJS) -lz
