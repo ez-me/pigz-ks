@@ -26,10 +26,12 @@ constexpr std::array<std::uint8_t, 30> kDistanceExtra = {
 
 // The length and distance symbol maps depend only on the DEFLATE base tables,
 // not on the active code lengths, so the target builds them once at startup.
-// Build them at compile time here; recomputing the 32,768-entry distance map
-// with a rescanning loop on every optimization pass dominated the runtime for
-// archives with many small members.
-constexpr std::array<std::uint8_t, 256> make_length_to_symbol() {
+// Build them once here at dynamic initialization. They used to be constexpr,
+// but libc++'s bounds-checked std::array::operator[] makes the 32,768-entry
+// distance map exceed clang's default constexpr step limit (Android/Termux).
+// A static table still avoids recomputing the map on every optimization pass,
+// which dominated the runtime for archives with many small members.
+std::array<std::uint8_t, 256> make_length_to_symbol() {
    std::array<std::uint8_t, 256> out{};
    for (std::size_t length = 3; length <= 258; ++length) {
       std::size_t code = 0;
@@ -42,7 +44,7 @@ constexpr std::array<std::uint8_t, 256> make_length_to_symbol() {
    return out;
 }
 
-constexpr std::array<std::uint8_t, 32768> make_distance_to_symbol() {
+std::array<std::uint8_t, 32768> make_distance_to_symbol() {
    std::array<std::uint8_t, 32768> out{};
    for (std::size_t distance = 1; distance <= 32768; ++distance) {
       std::size_t code = 0;
@@ -55,8 +57,19 @@ constexpr std::array<std::uint8_t, 32768> make_distance_to_symbol() {
    return out;
 }
 
-constexpr auto kLengthToSymbol = make_length_to_symbol();
-constexpr auto kDistanceToSymbol = make_distance_to_symbol();
+// Function-local statics so the tables are built on first use. That avoids any
+// static-initialization-order dependency, which matters because this code can
+// be preloaded into a process whose constructors also use zlib.
+const std::array<std::uint8_t, 256>& length_to_symbol_table() {
+   static const std::array<std::uint8_t, 256> table = make_length_to_symbol();
+   return table;
+}
+
+const std::array<std::uint8_t, 32768>& distance_to_symbol_table() {
+   static const std::array<std::uint8_t, 32768> table =
+      make_distance_to_symbol();
+   return table;
+}
 
 } // namespace
 
@@ -81,8 +94,8 @@ ParserCostTable make_parser_cost_table(
          : static_cast<std::uint16_t>(literal_length_bits[symbol] + kLengthExtra[i]);
    }
 
-   out.length_to_symbol = kLengthToSymbol;
-   out.distance_to_symbol = kDistanceToSymbol;
+   out.length_to_symbol = length_to_symbol_table();
+   out.distance_to_symbol = distance_to_symbol_table();
 
    return out;
 }
