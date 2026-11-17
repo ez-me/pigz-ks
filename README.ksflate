@@ -4,10 +4,11 @@ A fork of [pigz 2.8](https://github.com/madler/pigz) (commit `fe4894f`) that
 adds the ksflate engine as compression level 10. Levels 0–9 still use zlib
 and level 11 still uses zopfli; only level 10 is new.
 
-The engine sources are vendored under `engine/`, so this fork builds standalone
-with no sibling checkout. They are a copy of `ksflate/src` and are compiled as
-C++20; the pigz driver stays C. `make sync-engine` refreshes the copy from
-`../ksflate/src` when working inside the ksflate development tree.
+The engine and its public C API are vendored under `engine/`, so this fork
+builds standalone with no sibling checkout. They are copies of `ksflate/src`
+and `ksflate/include/ksflate.h`, compiled as C++20; the pigz driver stays C.
+`make sync-engine` refreshes the copies from `../ksflate` when working inside
+the ksflate development tree.
 
 ```sh
 make pigz       # builds ./pigz and ./unpigz
@@ -17,8 +18,9 @@ make test       # upstream tests plus level-10 round-trips
 ## Level 10
 
 `-10` splits the input into the usual pigz chunks and sends each chunk to
-`ksflate_compress()` in `ksflate_engine.cpp`. That wrapper runs two
-strategy-0 optimization passes, emits raw deflate, and handles the chunk
+`ksflate_compress()`, the public C API implemented in
+`engine/ksflate_api.cpp` (canonical copy in `../ksflate`). That wrapper runs
+two strategy-0 optimization passes, emits raw deflate, and handles the chunk
 framing:
 
 * the last chunk sets `BFINAL`;
@@ -69,4 +71,5 @@ only needs the vendored sources under `engine/`.
 ## License
 
 The pigz license is unchanged; see `README` and the header of `pigz.c`.
-`ksflate_engine.{h,cpp}` are new files under the same license.
+`engine/ksflate.h`, `engine/ksflate_api.cpp` and the vendored engine sources
+are new files under the same license.

@@ -425,7 +425,7 @@
 #  error "Need zlib version 1.2.3 or later"
 #endif
 
-#include "ksflate_engine.h"   // ksflate_compress(), ksflate_free()
+#include "ksflate.h"          // ksflate_compress(), ksflate_free()
                                 // (level 10, linked directly into this fork)
 
 #ifndef NOTHREAD
