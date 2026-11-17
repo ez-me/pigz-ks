@@ -6,7 +6,7 @@
  * concatenates a non-final segment and a final segment, primed with the tail
  * of the first, and checks the result with zlib's raw inflate.
  */
-#include "ksflate_engine.h"
+#include "ksflate.h"
 
 #include <zlib.h>
 
